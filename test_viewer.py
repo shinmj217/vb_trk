@@ -91,3 +91,58 @@ def test_summary(tmp_path):
     assert s["rallies"] == 3
     assert s["RIGHT"] == dict(points=1, serves=2, serve_wins=1, receives=0, receive_wins=0, serve_rate=0.5, sideout_rate=None)
     assert s["LEFT"] == dict(points=1, serves=0, serve_wins=0, receives=2, receive_wins=1, serve_rate=None, sideout_rate=0.5)
+
+
+# ---- API ----
+from fastapi.testclient import TestClient  # noqa: E402
+
+import app as viewer_app  # noqa: E402
+
+
+def client(tmp_path):
+    out, data = make_outputs(tmp_path)
+    return TestClient(viewer_app.create_app(out, data)), out, data
+
+
+def test_api_matches_and_rallies(tmp_path):
+    c, _, _ = client(tmp_path)
+    assert [m["stem"] for m in c.get("/api/matches").json()] == [STEM]
+    r = c.get(f"/api/matches/{STEM}/rallies").json()
+    assert len(r) == 3 and [e["action"] for e in r[0]["events"]] == ["pass", "spike"]
+
+
+def test_api_summary(tmp_path):
+    c, _, _ = client(tmp_path)
+    s = c.get(f"/api/matches/{STEM}/summary").json()
+    assert s["rallies"] == 3 and s["RIGHT"]["serve_rate"] == 0.5 and s["LEFT"]["sideout_rate"] == 0.5
+
+
+def test_api_frames_validation(tmp_path):
+    c, _, _ = client(tmp_path)
+    for q in ("start=10&end=5", "start=-1&end=5", "start=0&end=6001"):
+        assert c.get(f"/api/matches/{STEM}/frames?{q}").status_code == 400
+    ok = c.get(f"/api/matches/{STEM}/frames?start=100&end=102")
+    assert ok.status_code == 200 and len(ok.json()["players"]) == 3
+
+
+def test_api_unknown_stem_404(tmp_path):
+    c, _, _ = client(tmp_path)
+    for url in ("/api/matches/nope/rallies", "/api/matches/..%2Foutputs/rallies", "/video/nope", "/video/..%2Fapp",
+                "/api/matches/nope/figure", f"/api/matches/{STEM}/figure"):  # 마지막은 그림 파일이 없을 때
+        assert c.get(url).status_code == 404, url
+
+
+def test_api_video_range(tmp_path):
+    c, _, data = client(tmp_path)
+    size = (data / f"{STEM}.mp4").stat().st_size
+    r = c.get(f"/video/{STEM}", headers={"Range": "bytes=0-99"})
+    assert r.status_code == 206 and r.headers["content-range"] == f"bytes 0-99/{size}"
+    assert c.get(f"/video/{STEM}", headers={"Range": "bytes=999999999-"}).status_code == 416
+
+
+def test_api_missing_optional_csv(tmp_path):
+    c, out, _ = client(tmp_path)
+    (out / f"{STEM}_ball.csv").unlink()
+    (out / f"{STEM}_tracks.csv").unlink()
+    j = c.get(f"/api/matches/{STEM}/frames?start=100&end=102").json()
+    assert j["players"] == [] and j["ball"] == [] and j["gaps"] == [[100, 102]]
