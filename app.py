@@ -32,6 +32,13 @@ def create_app(outputs: Path, data: Path) -> FastAPI:
         m = match(stem)
         return vd.load_rallies(outputs, stem, m["fps"], m["frames"])
 
+    @app.middleware("http")
+    async def no_cache(request, call_next):  # 화면 파일은 항상 최신본 (수정 후 옛 HTML·JS가 섞여 깨지지 않게)
+        r = await call_next(request)
+        if request.url.path == "/" or request.url.path.startswith("/static/"):
+            r.headers["Cache-Control"] = "no-cache"
+        return r
+
     @app.get("/api/matches")
     def list_matches():
         return list(matches.values())

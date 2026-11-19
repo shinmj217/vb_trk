@@ -9,6 +9,7 @@ const MAX_SPAN = 6000;                                              // 서버 /f
 const v = $("#v"), ov = $("#ov"), court = $("#court");
 let matches = [], M = null, rallies = [], cur = null, curIdx = -1;
 let players = new Map(), balls = new Map(), gaps = [];              // 현재 랠리 구간 데이터
+let stopAt = null;                                                  // 랠리를 고른 직후 자동 재생은 구간 끝에서 멈춘다 (한 번만)
 
 const mmss = (f) => { const s = Math.round(f / M.fps); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
 const teamSpan = (t) => (t ? `<span class="${t === "LEFT" ? "L" : "R"}">${t}</span>` : "?");
@@ -24,6 +25,11 @@ async function init() {
   document.querySelectorAll("nav button").forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
   document.addEventListener("keydown", onKey);
   new ResizeObserver(fitOverlay).observe(v);
+  const click = (id, fn) => ($(id).onclick = (e) => { fn(); e.currentTarget.blur(); });  // 버튼에 포커스가 남아 스페이스가 두 번 먹는 걸 막는다
+  click("#play", togglePlay); click("#back5", () => skip(-5)); click("#fwd5", () => skip(5)); click("#full", toggleFull);
+  v.onclick = togglePlay;
+  v.onplay = v.onpause = () => ($("#play").textContent = v.paused ? "▶ 재생" : "⏸ 일시정지");
+  v.ontimeupdate = updateClock;
   if ("requestVideoFrameCallback" in v) v.requestVideoFrameCallback(onFrame);
   else requestAnimationFrame(rafLoop);
   if (!matches.length) return showMsg("경기가 없습니다. outputs/ 에 <이름>_rallies.csv 가 있어야 합니다.");
@@ -68,6 +74,7 @@ async function selectRally(i) {
   for (const p of d.players) { if (!players.has(p[0])) players.set(p[0], []); players.get(p[0]).push(p); }
   for (const bl of d.ball) balls.set(bl[0], bl);
   renderTimeline(); renderInfo();
+  stopAt = b;
   if (M.has_video && M.playable) { v.currentTime = a / M.fps; v.play().catch(() => {}); }
   draw(a);
 }
@@ -110,7 +117,7 @@ function onFrame(now, meta) {
   if (M && cur) {
     const f = Math.round(meta.mediaTime * M.fps);
     draw(f);
-    if (f >= cur.window[1]) v.pause();
+    if (stopAt !== null && f >= stopAt) { v.pause(); stopAt = null; }   // 랠리 끝에서 한 번 멈추고, 이후 직접 재생하면 계속 재생
   }
   v.requestVideoFrameCallback(onFrame);
 }
@@ -144,7 +151,7 @@ function draw(f) {
     ctx.fillStyle = "rgba(0,0,0,.6)"; ctx.fillRect(8, ov.height - 34, 260, 26);
     ctx.fillStyle = "#fff"; ctx.font = "14px sans-serif"; ctx.fillText(`${ACTION[ev.action] || ev.action} #${ev.actor ?? "?"} (${ev.team})`, 14, ov.height - 16);
   }
-  drawCourt(f, ps || []); movePlayhead(f);
+  drawCourt(f, ps || []); movePlayhead(f); updateClock();
 }
 
 function movePlayhead(f) {
@@ -178,8 +185,19 @@ function drawCourt(f, ps) {
   });
 }
 
+// ---- 재생 컨트롤 ----
+const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+function updateClock() { $("#clock").textContent = `${fmt(v.currentTime || 0)} / ${fmt(v.duration || 0)}`; }
+function togglePlay() { if (!v.src) return; if (v.paused) { stopAt = null; v.play().catch(() => {}); } else v.pause(); }
+function skip(s) { if (v.duration) { stopAt = null; v.currentTime = Math.min(v.duration, Math.max(0, v.currentTime + s)); } }
+function toggleFull() { document.fullscreenElement ? document.exitFullscreen() : $("#player").requestFullscreen(); }
+
 function onKey(e) {
   if (e.target.tagName === "SELECT" || $("#replay").hidden) return;
+  if (e.key === " ") { e.preventDefault(); togglePlay(); }
+  if (e.key === "ArrowLeft") { e.preventDefault(); skip(-5); }
+  if (e.key === "ArrowRight") { e.preventDefault(); skip(5); }
+  if (e.key === "f" || e.key === "F") toggleFull();
   if (e.key === "ArrowDown") { e.preventDefault(); selectRally(curIdx + 1); }
   if (e.key === "ArrowUp") { e.preventDefault(); selectRally(curIdx - 1); }
 }

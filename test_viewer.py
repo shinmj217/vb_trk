@@ -146,3 +146,10 @@ def test_api_missing_optional_csv(tmp_path):
     (out / f"{STEM}_tracks.csv").unlink()
     j = c.get(f"/api/matches/{STEM}/frames?start=100&end=102").json()
     assert j["players"] == [] and j["ball"] == [] and j["gaps"] == [[100, 102]]
+
+
+def test_ui_files_not_cached(tmp_path):
+    c, _, _ = client(tmp_path)
+    for url in ("/", "/static/app.js", "/static/style.css"):
+        r = c.get(url)
+        assert r.status_code == 200 and r.headers["cache-control"] == "no-cache", url
