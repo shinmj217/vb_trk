@@ -505,7 +505,8 @@ def video_courts(video, max_frames=0, cache=None, stride=1):
     n = min(n, max_frames) if max_frames else n
     raw = json.loads(cache.read_text(encoding="utf-8")) if cache.exists() else None
     # 영상 메타 프레임 수가 실제로 읽히는 프레임 수보다 조금 클 수 있음 (유튜브 구간 등) → 1% 안 차이는 캐시 그대로 씀
-    if raw is None or len(raw) < 0.99 * n:
+    # (잘라 낸 영상은 메타 프레임 수와 실제로 읽히는 수가 3% 가까이 다를 수 있다 → 95% 이상이면 캐시 사용. 캐시는 끝까지 돈 뒤에만 저장된다)
+    if raw is None or len(raw) < 0.95 * n:
         det = Sam3Court()
         raw, due, calls = [], 0, 0
         t = time.time()

@@ -22,6 +22,7 @@ async function init() {
   const sel = $("#match");
   sel.innerHTML = matches.map((m) => `<option value="${m.stem}">${m.stem}</option>`).join("");
   sel.onchange = () => selectMatch(sel.value);
+  setupJobs();
   document.querySelectorAll("nav button").forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
   document.addEventListener("keydown", onKey);
   new ResizeObserver(fitOverlay).observe(v);
@@ -38,8 +39,8 @@ async function init() {
 
 function showTab(tab) {
   document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
-  $("#replay").hidden = tab !== "replay";
-  $("#stats").hidden = tab !== "stats";
+  for (const id of ["replay", "stats", "jobs"]) $("#" + id).hidden = tab !== id;
+  if (tab !== "replay") v.pause();
 }
 
 async function selectMatch(stem) {
@@ -200,6 +201,91 @@ function onKey(e) {
   if (e.key === "f" || e.key === "F") toggleFull();
   if (e.key === "ArrowDown") { e.preventDefault(); selectRally(curIdx + 1); }
   if (e.key === "ArrowUp") { e.preventDefault(); selectRally(curIdx - 1); }
+}
+
+// ---- 영상 올리기 · 분석 ----
+let jobsPrev = new Map(), jobsJson = "";
+const STATUS = { uploaded: "분석 전", running: "분석 중", done: "완료", failed: "실패", cancelled: "취소됨" };
+
+function toast(text) { const t = $("#toast"); t.textContent = text; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => (t.hidden = true), 6000); }
+const dur = (s) => (s < 90 ? `${Math.round(s)}초` : s < 5400 ? `${Math.round(s / 60)}분` : `${(s / 3600).toFixed(1)}시간`);
+const detail = (txt) => { try { return JSON.parse(txt).detail; } catch { return ""; } };
+
+function setupJobs() {
+  $("#pick").onclick = () => $("#file").click();
+  $("#file").onchange = (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) upload(f); };
+  refreshJobs(); setInterval(refreshJobs, 3000);
+}
+
+function upload(file) {
+  if (!/\.mp4$/i.test(file.name)) return toast("mp4 파일만 올릴 수 있습니다");
+  const st = $("#uploadStatus"), x = new XMLHttpRequest();
+  $("#pick").disabled = true;
+  x.open("PUT", "/api/upload?name=" + encodeURIComponent(file.name));
+  x.upload.onprogress = (e) => { if (e.lengthComputable) st.textContent = `업로드 중 ${Math.round((100 * e.loaded) / e.total)}% (${Math.round(e.loaded / 1e6)} / ${Math.round(e.total / 1e6)} MB)`; };
+  x.onload = () => {
+    $("#pick").disabled = false; st.textContent = "";
+    if (x.status === 200) { toast("업로드 완료. '분석 시작'을 누르세요"); refreshJobs(); }
+    else toast(detail(x.responseText) || `업로드 실패 (${x.status})`);
+  };
+  x.onerror = () => { $("#pick").disabled = false; st.textContent = ""; toast("업로드 중 연결이 끊겼습니다"); };
+  x.send(file);
+  st.textContent = "업로드 시작…";
+}
+
+async function jobAction(stem, what) {
+  const r = await fetch(`/api/jobs/${encodeURIComponent(stem)}/${what}`, { method: "POST" });
+  if (!r.ok) toast(detail(await r.text()) || `실패 (${r.status})`);
+  refreshJobs();
+}
+
+async function reloadMatches() {
+  const sel = $("#match"), keep = sel.value;
+  matches = await getJSON("/api/matches");
+  sel.innerHTML = matches.map((m) => `<option value="${m.stem}">${m.stem}</option>`).join("");
+  if (matches.some((m) => m.stem === keep)) sel.value = keep;
+}
+
+async function refreshJobs() {
+  let list;
+  try { list = await getJSON("/api/jobs"); } catch { return; }
+  for (const j of list) {                                           // 방금 끝난 작업: 경기 목록에 반영하고 알린다
+    if (jobsPrev.get(j.stem) === "running" && j.status === "done") { await reloadMatches(); toast(`'${j.stem}' 분석 완료. 복기에서 볼 수 있습니다`); }
+    if (jobsPrev.get(j.stem) === "running" && j.status === "failed") toast(`'${j.stem}' 분석 실패`);
+  }
+  jobsPrev = new Map(list.map((j) => [j.stem, j.status]));
+  const running = list.find((j) => j.status === "running");
+  $("#jobsTab").textContent = running ? `영상 올리기·분석 (분석 중 ${Math.round(100 * running.overall)}%)` : "영상 올리기·분석";
+  const js = JSON.stringify(list.map((j) => [j.stem, j.status, j.overall, j.stages.map((s) => [s.status, s.frac]), j.error]));
+  if (js !== jobsJson) { jobsJson = js; renderJobs(list); }
+  document.querySelectorAll(".job .meta").forEach((m) => (m.textContent = metaText(list.find((j) => j.stem === m.closest(".job").dataset.stem))));
+}
+
+function metaText(j) {
+  if (!j) return "";
+  if (j.status !== "running") return j.finished && j.started ? `걸린 시간 ${dur(j.finished - j.started)}` : "";
+  const el = Date.now() / 1000 - j.started;
+  return `이번 실행 경과 ${dur(el)}` + (j.overall >= 0.03 ? ` · 남은 시간 약 ${dur((el * (1 - j.overall)) / j.overall)} (추정)` : " · 남은 시간 계산 중");
+}
+
+function renderJobs(list) {
+  $("#jobList").innerHTML = list.map((j) => {
+    const btn = j.status === "running" ? `<button data-a="cancel">취소</button>`
+      : j.status === "done" ? (matches.some((m) => m.stem === j.stem) ? `<button data-a="view">복기에서 보기</button>` : "")
+      : `<button data-a="start">${j.status === "uploaded" ? "분석 시작" : "다시 시작"}</button>`;
+    const stages = j.stages.map((s) => `<li class="${s.status}"><span>${s.label}</span><div class="bar"><i style="width:${Math.round(100 * (s.status === "done" ? 1 : s.status === "running" ? s.frac : 0))}%"></i></div>
+      <span>${s.status === "done" ? "완료" : s.status === "running" ? Math.round(100 * s.frac) + "%" : s.status === "failed" ? "실패" : ""}</span></li>`).join("");
+    return `<div class="job" data-stem="${j.stem}"><div class="head"><b>${j.stem}</b><span class="badge ${j.status}">${STATUS[j.status]}${j.status === "running" ? " · " + Math.round(100 * j.overall) + "%" : ""}</span>
+      <div class="actions">${btn}</div></div>
+      <div class="bar"><i style="width:${Math.round(100 * j.overall)}%"></i></div><ol class="stages">${stages}</ol>
+      <p class="meta">${metaText(j)}</p>${j.status === "done" && !matches.some((m) => m.stem === j.stem) ? `<p class="err">분석은 끝났지만 랠리를 찾지 못했습니다 (득점 장면이 없거나 영상이 너무 짧음). 복기 화면에는 나오지 않습니다.</p>` : ""}${j.error ? `<p class="err">${j.error}</p>` : ""}</div>`;
+  }).join("") || `<p class="hint">아직 올린 영상이 없습니다.</p>`;
+  document.querySelectorAll(".job button").forEach((b) => (b.onclick = () => {
+    const stem = b.closest(".job").dataset.stem, a = b.dataset.a;
+    if (a === "view") { showTab("replay"); $("#match").value = stem; selectMatch(stem); }
+    else if (a === "cancel") { if (confirm("분석을 취소할까요? 끝난 단계는 남고, 다시 시작하면 이어서 합니다.")) jobAction(stem, "cancel"); }
+    else jobAction(stem, "start");
+  }));
 }
 
 init().catch((e) => showMsg("불러오기 실패: " + e.message));

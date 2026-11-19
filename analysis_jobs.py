@@ -87,9 +87,12 @@ def alive(pid):
         return bool(ok) and code.value == 259  # STILL_ACTIVE
     try:
         os.kill(pid, 0)
-        return True
     except OSError:
         return False
+    try:  # 부모가 거두지 않은 죽은 프로세스(좀비)는 살아 있는 게 아니다
+        return Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[0] != "Z"
+    except OSError:
+        return True
 
 
 def kill_tree(pid):

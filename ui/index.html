@@ -12,6 +12,7 @@
   <nav>
     <button data-tab="replay" class="active">복기</button>
     <button data-tab="stats">경기 통계</button>
+    <button data-tab="jobs" id="jobsTab">영상 올리기·분석</button>
   </nav>
   <span class="note">득점 팀 판정 약 85% (득점 팀은 다음 랠리의 서브 팀으로 추정)</span>
 </header>
@@ -50,6 +51,19 @@
   <div id="cards"></div>
   <img id="figure" alt="분석 그림">
 </main>
+
+<main id="jobs" hidden>
+  <div class="card upload">
+    <h3>새 영상 분석</h3>
+    <p class="hint">mp4 파일을 올리면 코트 인식 → 선수 추적 → 이벤트 → 공 → 분석 그림 순서로 분석합니다.
+       40분짜리 한 세트에 <b>몇 시간</b> 걸리고, 그동안 GPU를 거의 다 씁니다. 창을 닫아도 분석은 계속됩니다.</p>
+    <input type="file" id="file" accept=".mp4,video/mp4" hidden>
+    <button id="pick">📤 영상 올리기 (mp4)</button>
+    <span id="uploadStatus"></span>
+  </div>
+  <div id="jobList"></div>
+</main>
+<div id="toast" hidden></div>
 
 <script src="/static/app.js"></script>
 </body>
