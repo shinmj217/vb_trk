@@ -1,0 +1,7 @@
+ultralytics>=8.4
+opencv-python
+numpy
+lap
+transformers>=5.0
+scikit-learn
+matplotlib

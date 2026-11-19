@@ -1,0 +1,5 @@
+outs:
+- md5: aa6c91ae5dd355a546b5e2dafd50715c
+  size: 20374469
+  hash: md5
+  path: ball_y26s_1280.pt

@@ -1,0 +1,15 @@
+groups:
+  - name: vb-detect
+    rules:
+      - alert: VbDetectSlow
+        expr: histogram_quantile(0.95, sum(rate(vb_detect_inference_seconds_bucket[5m])) by (le)) > 0.5
+        for: 5m
+        annotations: {summary: "추론 p95 지연이 0.5초 초과 (GPU 경합·입력 해상도 확인)"}
+      - alert: VbDetectBadRequests
+        expr: sum(rate(vb_detect_requests_total{status!="ok"}[5m])) > 0.1
+        for: 5m
+        annotations: {summary: "깨진 이미지·너무 큰 파일 요청 비율 증가"}
+      - alert: VbDetectNoPersons
+        expr: histogram_quantile(0.5, sum(rate(vb_detect_persons_bucket[30m])) by (le)) < 1
+        for: 30m
+        annotations: {summary: "프레임당 사람 수 중앙값이 0 근처 — 입력 영상이 바뀌었거나 모델 이상 (드리프트 점검)"}

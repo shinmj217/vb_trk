@@ -1,0 +1,140 @@
+{
+ "title": "vb_trk 선수 검출 서비스",
+ "uid": "vb-detect",
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "10s",
+ "time": {
+  "from": "now-30m",
+  "to": "now"
+ },
+ "templating": {
+  "list": [
+   {
+    "name": "DS_PROM",
+    "type": "datasource",
+    "query": "prometheus",
+    "label": "데이터소스"
+   }
+  ]
+ },
+ "panels": [
+  {
+   "id": 1,
+   "type": "timeseries",
+   "title": "요청 수 (초당, 상태별)",
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROM}"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "reqps"
+    },
+    "overrides": []
+   },
+   "targets": [
+    {
+     "expr": "sum(rate(vb_detect_requests_total[1m])) by (status)",
+     "legendFormat": "{{status}}",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "type": "timeseries",
+   "title": "추론 지연 p50 / p95 (초)",
+   "gridPos": {
+    "x": 12,
+    "y": 0,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROM}"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   },
+   "targets": [
+    {
+     "expr": "histogram_quantile(0.95, sum(rate(vb_detect_inference_seconds_bucket[5m])) by (le))",
+     "legendFormat": "p95",
+     "refId": "A"
+    },
+    {
+     "expr": "histogram_quantile(0.5, sum(rate(vb_detect_inference_seconds_bucket[5m])) by (le))",
+     "legendFormat": "p50",
+     "refId": "B"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "type": "timeseries",
+   "title": "프레임당 검출된 사람 수 (평균)",
+   "gridPos": {
+    "x": 0,
+    "y": 8,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROM}"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short"
+    },
+    "overrides": []
+   },
+   "targets": [
+    {
+     "expr": "rate(vb_detect_persons_sum[5m]) / rate(vb_detect_persons_count[5m])",
+     "legendFormat": "평균",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "type": "timeseries",
+   "title": "오류 요청 비율",
+   "gridPos": {
+    "x": 12,
+    "y": 8,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROM}"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percentunit"
+    },
+    "overrides": []
+   },
+   "targets": [
+    {
+     "expr": "sum(rate(vb_detect_requests_total{status!=\"ok\"}[5m])) / sum(rate(vb_detect_requests_total[5m]))",
+     "legendFormat": "오류",
+     "refId": "A"
+    }
+   ]
+  }
+ ]
+}

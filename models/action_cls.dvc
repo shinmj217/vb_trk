@@ -1,0 +1,6 @@
+outs:
+- md5: 3b181f9182fed56ce9718ef25bdf8ad6.dir
+  size: 188736021
+  nfiles: 103
+  hash: md5
+  path: action_cls

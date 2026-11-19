@@ -1,0 +1,8 @@
+data/
+outputs/
+docs/
+__pycache__/
+*.mp4
+*.pt
+!yolo26m.pt
+.git

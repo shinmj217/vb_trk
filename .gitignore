@@ -1,0 +1,24 @@
+# 코드만 git, 큰 파일은 DVC(.dvc 포인터만 git) 또는 제외
+outputs/
+mlartifacts/
+mlflow.db
+.venv-mlops/
+__pycache__/
+*.pyc
+data/volleyball/
+data/ball/
+data/action*/
+data/team*/
+data/sample/
+data/sam3_test/
+data/court_fit/
+data/*.json
+data/*.csv
+/yolo26m.pt
+tools/
+*.pt
+weights/
+data/clip_*.mp4
+data/long_*.mp4
+data/*_preview.jpg
+run_set3.bat

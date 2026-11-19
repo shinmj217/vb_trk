@@ -1,0 +1,13 @@
+# CI(CPU) 에서 단위 테스트를 돌리는 데 필요한 것만 (SAM3·transformers·학습용 패키지 제외)
+numpy
+opencv-python-headless
+ultralytics>=8.4
+scikit-learn
+joblib
+matplotlib
+fastapi>=0.110
+httpx
+uvicorn
+python-multipart
+prometheus_client
+pytest
