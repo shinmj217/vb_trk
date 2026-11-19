@@ -23,3 +23,5 @@ data/long_*.mp4
 data/*_preview.jpg
 run_set3.bat
 .superpowers/
+jobs/
+data/uploads/

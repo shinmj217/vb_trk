@@ -103,12 +103,16 @@ def main():
 
     # 1차: 영상 전체 추적
     frames, t0 = [], time.time()
+    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    total = min(total, a.max_frames) if a.max_frames else total
     while True:
         ok, frame = cap.read()
         if not ok or (a.max_frames and len(frames) >= a.max_frames):
             break
         court = fixed if courts is None else courts[min(len(frames), len(courts) - 1)]
         frames.append(track_step(model, teams, frame, court, a))
+        if len(frames) % 300 == 0:
+            print(f"[진행] 추적 {len(frames)}/{total}", flush=True)  # analysis_jobs 가 읽는 진행 신호
     fps_track = len(frames) / (time.time() - t0)
     n_raw = len({int(t) for f in frames for t in f[0]})
     frames = relink(frames)
@@ -123,6 +127,8 @@ def main():
         ok, frame = cap.read()
         if not ok:
             break
+        if frame_idx % 300 == 0:
+            print(f"[진행] 저장 {frame_idx}/{len(frames)}", flush=True)
         keep = [i for i, t in enumerate(ids) if int(t) in players]
         ids, boxes, results = [ids[i] for i in keep], [boxes[i] for i in keep], [results[i] for i in keep]
         for tid, (_, pos, _) in zip(ids, results):

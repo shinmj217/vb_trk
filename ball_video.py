@@ -27,6 +27,7 @@ def main():
     cap = cv2.VideoCapture(a.video)
     fps = cap.get(cv2.CAP_PROP_FPS) or 30
     cands, done = [], False
+    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     while not done:  # 16프레임씩 읽고 버림 (경기 전체도 메모리 일정)
         batch = []
         while len(batch) < 16:
@@ -38,6 +39,8 @@ def main():
         for r in (model.predict(batch, imgsz=1280, conf=0.01, max_det=5, verbose=False) if batch else []):
             xy, conf = r.boxes.xywh[:, :2].tolist(), r.boxes.conf.tolist()
             cands.append(sorted(((x, y, c) for (x, y), c in zip(xy, conf)), key=lambda c: -c[2]))
+        if len(cands) % 480 == 0:
+            print(f"[진행] 공 {len(cands)}/{total}", flush=True)  # analysis_jobs 가 읽는 진행 신호
     pts = fill(choose(cands, D), THR, D, GAP)
 
     with open(out / f"{stem}_ball.csv", "w", newline="", encoding="utf-8") as fo:
@@ -53,6 +56,8 @@ def main():
         ok, f = cap.read()
         if not ok:
             break
+        if t % 300 == 0:
+            print(f"[진행] 그리기 {t}/{len(pts)}", flush=True)
         tail = [q for q in pts[max(0, t - TAIL):t + 1] if q]
         for k, (x0, y0) in enumerate(zip(tail, tail[1:])):
             cv2.line(f, (int(x0[0]), int(x0[1])), (int(y0[0]), int(y0[1])), (0, 255, 255), 2)

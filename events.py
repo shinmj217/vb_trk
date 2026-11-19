@@ -93,8 +93,11 @@ def features(video, tracks, max_frames=0):
     player, frame = Featurizer(f"{M}/base/weights/best.pt", 224), Featurizer(f"{M}/frames_m/weights/best.pt", 448)
     # ponytail: 특징을 전부 메모리에 (1시간 영상이면 수 GB) → 창 단위로 흘려보내기
     pf, ff = {}, []
+    total = int(cv2.VideoCapture(str(video)).get(cv2.CAP_PROP_FRAME_COUNT))
     for img in read_frames(video):
         t = len(ff)
+        if t % 300 == 0:
+            print(f"[진행] 특징 {t}/{total}", flush=True)  # analysis_jobs 가 읽는 진행 신호
         if max_frames and t >= max_frames:
             break
         rows = tracks.get(t, [])
@@ -237,11 +240,13 @@ def main():
     cap = cv2.VideoCapture(str(out / f"{stem}_tracked.mp4"))
     W, H, fps = int(cap.get(3)), int(cap.get(4)), cap.get(5) or 30
     wr = cv2.VideoWriter(str(out / f"{stem}_events.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), fps, (W, H))
-    t = 0
+    t, total = 0, int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     while True:
         ok, img = cap.read()
         if not ok:
             break
+        if t % 300 == 0:
+            print(f"[진행] 영상 {t}/{total}", flush=True)
         for ev in events:
             if ev["start"] <= t <= ev["end"]:
                 txt = f"{ev['team']} {ev['action'].upper()}" + (f"  #{ev['actor']}" if ev["actor"] != "" else "")

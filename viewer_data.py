@@ -40,6 +40,14 @@ def _video_meta(video: Path):
     return meta
 
 
+def video_path(data: Path, stem: str):
+    """영상 파일 위치: data/<이름>.mp4, 없으면 UI로 올린 data/uploads/<이름>.mp4, 둘 다 없으면 None"""
+    for p in (Path(data) / f"{stem}.mp4", Path(data) / "uploads" / f"{stem}.mp4"):
+        if p.exists():
+            return p
+    return None
+
+
 def find_matches(outputs: Path, data: Path):
     """랠리가 1개 이상 있는 결과 = 경기. 영상 메타(fps·크기·재생 가능 여부)를 같이 돌려준다"""
     out = []
@@ -48,7 +56,8 @@ def find_matches(outputs: Path, data: Path):
         with open(f, encoding="utf-8") as fh:
             if sum(1 for _ in csv.DictReader(fh)) == 0:
                 continue
-        m = _video_meta(Path(data) / f"{stem}.mp4") if (Path(data) / f"{stem}.mp4").exists() else None
+        vp = video_path(data, stem)
+        m = _video_meta(vp) if vp else None
         out.append(dict(stem=stem, fps=m["fps"] if m else DEFAULT_FPS, frames=m["frames"] if m else None,
                         width=m["width"] if m else None, height=m["height"] if m else None,
                         has_video=m is not None, playable=bool(m and m["fourcc"] in PLAYABLE)))
