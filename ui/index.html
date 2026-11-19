@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vb_trk 뷰어</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <select id="match" aria-label="경기 선택"></select>
+  <nav>
+    <button data-tab="replay" class="active">복기</button>
+    <button data-tab="stats">경기 통계</button>
+  </nav>
+  <span class="note">득점 팀 판정 약 85% (득점 팀은 다음 랠리의 서브 팀으로 추정)</span>
+</header>
+
+<main id="replay">
+  <aside>
+    <table id="rallies">
+      <thead><tr><th>#</th><th>시각</th><th>서브 → 득점</th><th>접촉</th><th>길이</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </aside>
+  <section>
+    <div id="stage">
+      <video id="v" controls muted preload="metadata"></video>
+      <canvas id="ov"></canvas>
+      <div id="msg" hidden></div>
+    </div>
+    <div id="timeline" title="랠리 구간 (회색 = 코트 인식 실패, 세로선 = 접촉)"></div>
+    <div class="lower">
+      <canvas id="court" width="480" height="240"></canvas>
+      <div id="info"></div>
+    </div>
+  </section>
+</main>
+
+<main id="stats" hidden>
+  <div id="cards"></div>
+  <img id="figure" alt="분석 그림">
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
