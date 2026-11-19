@@ -14,5 +14,5 @@ jobs:
           pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements-ci.txt
       - name: 단위 테스트 (가중치 필요한 서빙 테스트는 yolo26m.pt 가 없으면 건너뜀)
-        run: python -m pytest -q test_vbtrk.py
+        run: python -m pytest -q test_vbtrk.py test_viewer.py
   # TODO(CD): main 에 합쳐질 때 docker build + 이미지 푸시. 가중치는 `dvc pull` (원격 저장소 설정 후)
