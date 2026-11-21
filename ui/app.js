@@ -143,7 +143,7 @@ function draw(f) {
   }
   const tail = [];
   for (let g = f - TAIL; g <= f; g++) if (balls.has(g)) tail.push(balls.get(g));
-  ctx.strokeStyle = "#ffd400"; ctx.lineWidth = 2; ctx.beginPath();
+  ctx.strokeStyle = css("--ball"); ctx.lineWidth = 2; ctx.beginPath();
   tail.forEach((b, i) => (i ? ctx.lineTo(b[1] * k, b[2] * k) : ctx.moveTo(b[1] * k, b[2] * k)));
   ctx.stroke();
   if (balls.has(f)) { ctx.beginPath(); ctx.arc(balls.get(f)[1] * k, balls.get(f)[2] * k, 12, 0, 7); ctx.stroke(); }
@@ -167,22 +167,23 @@ function drawCourt(f, ps) {
   const X0 = -3, X1 = 21, Y0 = -1.5, Y1 = 10.5;                      // 표시 범위 (m), 코트 밖 여유 포함
   const px = (cy) => ((cy - X0) / (X1 - X0)) * W, py = (cx) => ((cx - Y0) / (Y1 - Y0)) * H;
   c.clearRect(0, 0, W, H);
-  c.fillStyle = "#f2e4c9"; c.fillRect(px(0), py(0), px(18) - px(0), py(9) - py(0));
-  c.strokeStyle = "#fff"; c.lineWidth = 2; c.strokeRect(px(0), py(0), px(18) - px(0), py(9) - py(0));
+  const ball = css("--ball"), ink = css("--text");
+  c.fillStyle = css("--court"); c.fillRect(px(0), py(0), px(18) - px(0), py(9) - py(0));
+  c.strokeStyle = css("--court-line"); c.lineWidth = 2; c.strokeRect(px(0), py(0), px(18) - px(0), py(9) - py(0));
   c.beginPath(); c.moveTo(px(6), py(0)); c.lineTo(px(6), py(9)); c.moveTo(px(12), py(0)); c.lineTo(px(12), py(9)); c.stroke();
-  c.strokeStyle = "#1d2330"; c.lineWidth = 3; c.beginPath(); c.moveTo(px(9), py(-0.5)); c.lineTo(px(9), py(9.5)); c.stroke();
+  c.strokeStyle = ink; c.lineWidth = 3; c.beginPath(); c.moveTo(px(9), py(-0.5)); c.lineTo(px(9), py(9.5)); c.stroke();
   c.font = "12px sans-serif"; c.fillStyle = colors[0]; c.fillText("LEFT", px(0), 12); c.fillStyle = colors[1]; c.fillText("RIGHT", px(18) - 38, 12);
   for (const p of ps) { c.fillStyle = colors[p[2]] || "#888"; c.beginPath(); c.arc(px(p[8]), py(p[7]), 5, 0, 7); c.fill(); }
   // 코트 밖 멀리 찍힌 접촉(코트 맞춤이 틀린 프레임)은 지도에서 뺀다
   const inMap = (e) => e.court_x !== null && e.court_y !== null && e.court_y > X0 && e.court_y < X1 && e.court_x > Y0 && e.court_x < Y1;
   const pts = (cur?.events || []).filter(inMap);
-  c.strokeStyle = "#555"; c.lineWidth = 1.5; c.beginPath();
+  c.strokeStyle = "rgba(233,238,243,.45)"; c.lineWidth = 1.5; c.beginPath();
   pts.forEach((e, i) => (i ? c.lineTo(px(e.court_y), py(e.court_x)) : c.moveTo(px(e.court_y), py(e.court_x))));
   c.stroke();
   pts.forEach((e, i) => {
     const done = e.start <= f; c.beginPath(); c.arc(px(e.court_y), py(e.court_x), 9, 0, 7);
-    c.fillStyle = done ? "#1d2330" : "#fff"; c.fill(); c.strokeStyle = "#1d2330"; c.stroke();
-    c.fillStyle = done ? "#fff" : "#1d2330"; c.font = "11px sans-serif"; c.textAlign = "center"; c.fillText(i + 1, px(e.court_y), py(e.court_x) + 4); c.textAlign = "start";
+    c.fillStyle = done ? ball : css("--panel"); c.fill(); c.strokeStyle = ball; c.lineWidth = 1.5; c.stroke();
+    c.fillStyle = done ? css("--on-ball") : ball; c.font = "11px sans-serif"; c.textAlign = "center"; c.fillText(i + 1, px(e.court_y), py(e.court_x) + 4); c.textAlign = "start";
   });
 }
 
@@ -289,7 +290,7 @@ function renderJobs(list) {
       : `<button data-a="start">${j.status === "uploaded" ? "분석 시작" : "다시 시작"}</button>`;
     const stages = j.stages.map((s) => `<li class="${s.status}"><span>${s.label}</span><div class="bar"><i style="width:${Math.round(100 * (s.status === "done" ? 1 : s.status === "running" ? s.frac : 0))}%"></i></div>
       <span>${s.status === "done" ? "완료" : s.status === "running" ? Math.round(100 * s.frac) + "%" : s.status === "failed" ? "실패" : ""}</span></li>`).join("");
-    return `<div class="job" data-stem="${j.stem}"><div class="head"><b>${j.stem}</b><span class="badge ${j.status}">${STATUS[j.status]}${j.status === "running" ? " · " + Math.round(100 * j.overall) + "%" : j.status === "queued" ? ` · ${queue.indexOf(j.stem) + 1}번째` : ""}</span>
+    return `<div class="job ${j.status}" data-stem="${j.stem}"><div class="head"><b>${j.stem}</b><span class="badge ${j.status}">${STATUS[j.status]}${j.status === "running" ? " · " + Math.round(100 * j.overall) + "%" : j.status === "queued" ? ` · ${queue.indexOf(j.stem) + 1}번째` : ""}</span>
       <div class="actions">${btn}${del}</div></div>
       <div class="bar"><i style="width:${Math.round(100 * j.overall)}%"></i></div><ol class="stages">${stages}</ol>
       <p class="meta">${metaText(j)}</p>${j.status === "done" && !matches.some((m) => m.stem === j.stem) ? `<p class="err">분석은 끝났지만 랠리를 찾지 못했습니다 (득점 장면이 없거나 영상이 너무 짧음). 복기 화면에는 나오지 않습니다.</p>` : ""}${j.error ? `<p class="err">${j.error}</p>` : ""}</div>`;
