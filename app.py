@@ -121,6 +121,7 @@ def create_app(outputs: Path, data: Path, jobs: Path = Path("jobs"), required=aj
 
     @app.get("/api/jobs")
     def get_jobs():
+        aj.kick(jobs, data, outputs)  # 러너가 비정상 종료돼 대기열이 멈춘 경우에도 다음 작업을 시작한다
         return [job_json(s) for s in aj.list_states(jobs)]
 
     @app.post("/api/jobs/{stem}/start")
@@ -128,12 +129,19 @@ def create_app(outputs: Path, data: Path, jobs: Path = Path("jobs"), required=aj
         try:
             return job_json(aj.start(stem, jobs, data, outputs, required, min_free_gb))
         except aj.JobError as e:
-            raise HTTPException(409 if "분석 중" in str(e) else 400, str(e))
+            raise HTTPException(409 if "이미" in str(e) else 400, str(e))
 
     @app.post("/api/jobs/{stem}/cancel")
     def cancel_job(stem: str):
         try:
-            return job_json(aj.cancel(stem, jobs))
+            return job_json(aj.cancel(stem, jobs, data, outputs))
+        except aj.JobError as e:
+            raise HTTPException(400, str(e))
+
+    @app.delete("/api/jobs/{stem}")
+    def delete_job(stem: str):
+        try:
+            return {"deleted": aj.delete(stem, jobs, data, outputs)}
         except aj.JobError as e:
             raise HTTPException(400, str(e))
 

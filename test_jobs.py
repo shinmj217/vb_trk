@@ -190,3 +190,86 @@ def test_api_uploaded_video_served_once_results_exist(tmp_path):
     (out / "x_rallies.csv").write_text("start,serve_team,winner,contacts,seconds\n1,LEFT,RIGHT,3,5.0\n", encoding="utf-8")
     assert [m["stem"] for m in c.get("/api/matches").json()] == ["x"]  # 서버를 다시 안 띄워도 바로 목록에 뜬다
     assert c.get("/video/x", headers={"Range": "bytes=0-9"}).status_code == 206
+
+
+# ---- 영상 삭제 · 대기열 ----
+def test_delete_removes_only_exact_stem_files(tmp_path):
+    jobs, data, out = setup(tmp_path)                                 # 'x' 가 이미 있다
+    up = data / "uploads"
+    aj.create(jobs, "x_b", up / "x_b.mp4")                            # 이름이 'x_' 로 시작하는 다른 영상
+    for stem in ("x", "x_b"):
+        (up / f"{stem}.mp4").write_bytes(b"v")
+        (up / f"{stem}.courts_s10.json").write_text("[]", encoding="utf-8")
+        for suf in ("tracks.csv", "rallies.csv", "analysis.png", "pipeline.log", "tracked.mp4"):
+            (out / f"{stem}_{suf}").write_bytes(b"o")
+    aj.delete("x", jobs, data, out)
+    assert not list(up.glob("x.*")) and not list(out.glob("x_t*")) and not (out / "x_rallies.csv").exists()
+    assert (up / "x_b.mp4").exists() and (out / "x_b_rallies.csv").exists() and aj.get_state(jobs, "x_b")  # 'x_b' 는 그대로
+    assert aj.get_state(jobs, "x") is None
+
+
+def test_delete_refuses_running_and_unknown(tmp_path):
+    jobs, data, out = setup(tmp_path)
+    st = aj.get_state(jobs, "x")
+    st.update(status="queued")
+    aj.write_state(jobs, st)
+    with pytest.raises(aj.JobError, match="분석 중"):
+        aj.delete("x", jobs, data, out)
+    with pytest.raises(aj.JobError, match="없는 영상"):
+        aj.delete("nope", jobs, data, out)
+
+
+def test_queue_runs_next_after_first_finishes(tmp_path, monkeypatch):
+    jobs, data, out = setup(tmp_path)
+    (data / "uploads" / "y.mp4").write_bytes(b"fake")
+    aj.create(jobs, "y", data / "uploads" / "y.mp4")
+    monkeypatch.setenv("VB_JOB_STAGES_JSON", json.dumps([stage("s", "import time; time.sleep(2); print('ok')")]))
+    assert aj.start("x", jobs, data, out, required=[], min_free_gb=0)["status"] == "running"
+    q = aj.start("y", jobs, data, out, required=[], min_free_gb=0)    # x 가 도는 중 → 대기
+    assert q["status"] == "queued" and q["queued_at"]
+    for _ in range(100):                                             # x 가 끝나면 러너가 y 를 이어서 시작·완료
+        if aj.get_state(jobs, "y")["status"] == "done":
+            break
+        time.sleep(0.3)
+    assert aj.get_state(jobs, "x")["status"] == "done" and aj.get_state(jobs, "y")["status"] == "done"
+
+
+def test_cancel_queued_returns_to_uploaded(tmp_path):
+    jobs, data, out = setup(tmp_path)
+    st = aj.get_state(jobs, "x")
+    st.update(status="queued", queued_at=time.time())
+    aj.write_state(jobs, st)
+    assert aj.cancel("x", jobs)["status"] == "uploaded"
+
+
+def test_kick_starts_oldest_queued_when_idle(tmp_path, monkeypatch):
+    jobs, data, out = setup(tmp_path)
+    (data / "uploads" / "y.mp4").write_bytes(b"fake")
+    aj.create(jobs, "y", data / "uploads" / "y.mp4")
+    monkeypatch.setenv("VB_JOB_STAGES_JSON", json.dumps([stage("s", "print('ok')")]))
+    for stem, t in (("y", 200.0), ("x", 100.0)):                      # x 가 더 먼저 줄 섰다
+        st = aj.get_state(jobs, stem)
+        st.update(status="queued", queued_at=t)
+        aj.write_state(jobs, st)
+    aj.kick(jobs, data, out)
+    for _ in range(100):
+        if all(aj.get_state(jobs, s)["status"] == "done" for s in ("x", "y")):
+            break
+        time.sleep(0.3)
+    assert [aj.get_state(jobs, s)["status"] for s in ("x", "y")] == ["done", "done"]
+
+
+def test_api_delete_and_busy_queue(tmp_path):
+    c, jobs, data, out = api(tmp_path)
+    for name in ("a.mp4", "b.mp4"):
+        assert c.put("/api/upload", params={"name": name}, content=tiny_mp4(tmp_path / "s.mp4")).status_code == 200
+    st = aj.get_state(jobs, "a")
+    st.update(status="running", pid=__import__("os").getpid())          # 이 테스트 프로세스를 '돌고 있는 러너'로 가장
+    aj.write_state(jobs, st)
+    r = c.post("/api/jobs/b/start")
+    assert r.status_code == 200 and r.json()["status"] == "queued"
+    assert c.delete("/api/jobs/a").status_code == 400                   # 도는 중이면 삭제 거절
+    assert c.delete("/api/jobs/b").status_code == 400                   # 대기 중도 거절 (먼저 대기 취소)
+    assert c.post("/api/jobs/b/cancel").json()["status"] == "uploaded"
+    assert c.delete("/api/jobs/b").status_code == 200 and not (data / "uploads" / "b.mp4").exists()
+    assert c.delete("/api/jobs/nope").status_code == 400
