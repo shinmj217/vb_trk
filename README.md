@@ -134,6 +134,16 @@ python app.py            # http://localhost:8000 이 열린다 (--outputs, --dat
 - **솔직한 한계:** 득점 팀은 '다음 랠리의 서브 팀'으로 추정한 값이라 판정 약 85%다 (화면 위에 상시 표시). 코트를 못 잡은 구간(클로즈업·리플레이)은 박스가 없고 타임라인에 회색으로 표시된다. 접촉 수 2 이하·5초 미만·득점 팀 없음인 랠리는 ⚠로 표시한다.
 - 브라우저는 Chrome·Edge 기준 (VP9 영상 재생). 데이터셋 클립(MPEG-4)은 브라우저가 못 읽어 목록에 나오지 않는다.
 
+### 뷰어 exe (더블클릭)
+
+```bash
+build_exe.bat     # vb_viewer.exe (약 80MB) 생성 — 격리 환경 .venv-pack 에 PyInstaller 등 가벼운 패키지만 설치
+```
+
+- `vb_viewer.exe`를 **프로젝트 폴더에 두고** 더블클릭하면 뷰어가 열린다 (콘솔 창이 서버 창이다, 닫으면 종료). `--port`, `--no-browser` 옵션도 쓸 수 있다.
+- exe에는 뷰어만 들어 있다. **분석 실행은 이 폴더의 Python 환경(torch·ultralytics 등)이 필요**하고, exe는 PATH의 `python`(또는 `VB_PYTHON` 환경변수로 지정한 python.exe)으로 분석을 띄운다. 결과 보기·영상 올리기·삭제는 Python 없이도 된다.
+- 전체(torch·SAM3·모델)를 exe 하나에 넣는 것은 수 GB라 하지 않았다.
+
 ## 서빙 (FastAPI)
 
 선수 검출 모델을 이미지 API로 서빙한다 (`serve.py`). Prometheus 메트릭(요청 수·추론 지연·프레임당 사람 수) 포함.

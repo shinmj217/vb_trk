@@ -273,3 +273,30 @@ def test_api_delete_and_busy_queue(tmp_path):
     assert c.post("/api/jobs/b/cancel").json()["status"] == "uploaded"
     assert c.delete("/api/jobs/b").status_code == 200 and not (data / "uploads" / "b.mp4").exists()
     assert c.delete("/api/jobs/nope").status_code == 400
+
+
+# ---- exe(PyInstaller) 로 묶였을 때 ----
+def test_python_exe_when_frozen(monkeypatch):
+    assert aj.python_exe() == sys.executable                            # 평소에는 지금 파이썬
+    monkeypatch.setattr(sys, "frozen", True, raising=False)             # exe 안에서는 sys.executable 이 exe 자신이라 쓸 수 없다
+    monkeypatch.setenv("VB_PYTHON", r"C:\내파이썬\python.exe")
+    assert aj.python_exe() == r"C:\내파이썬\python.exe"
+    monkeypatch.delenv("VB_PYTHON")
+    monkeypatch.setattr(aj.shutil, "which", lambda name: None)
+    with pytest.raises(aj.JobError, match="Python 환경"):
+        aj.python_exe()
+
+
+def test_upload_works_even_without_python_when_frozen(tmp_path, monkeypatch):
+    c, _, _, _ = api(tmp_path)                                          # 업로드·삭제는 파이썬 환경이 없어도 되어야 한다 (분석만 필요)
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.delenv("VB_PYTHON", raising=False)
+    monkeypatch.setattr(aj.shutil, "which", lambda name: None)
+    assert c.put("/api/upload", params={"name": "x.mp4"}, content=tiny_mp4(tmp_path / "s.mp4")).status_code == 200
+
+
+def test_start_needs_project_folder(tmp_path, monkeypatch):
+    jobs, data, out = setup(tmp_path)
+    monkeypatch.setattr(aj, "ROOT", tmp_path)                           # run.py 가 없는 폴더 = exe 만 따로 둔 경우
+    with pytest.raises(aj.JobError, match="프로젝트 폴더"):
+        aj.start("x", jobs, data, out, required=[], min_free_gb=0)

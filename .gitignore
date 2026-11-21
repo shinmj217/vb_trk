@@ -25,3 +25,8 @@ run_set3.bat
 .superpowers/
 jobs/
 data/uploads/
+.venv-pack/
+build/
+dist/
+vb_viewer.exe
+*.spec

@@ -17,7 +17,8 @@ import time
 from collections import deque
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
+FROZEN = getattr(sys, "frozen", False)  # PyInstaller exe 안에서 도는지
+ROOT = Path(sys.executable).parent if FROZEN else Path(__file__).resolve().parent  # exe 는 프로젝트 폴더(run.py 가 있는 곳)에 두고 쓴다
 REQUIRED = [ROOT / "yolo26m.pt", ROOT / "outputs/ball/y26s_1280/weights/best.pt",
             ROOT / "outputs/action_cls/base/weights/best.pt", ROOT / "outputs/action_cls/frames_m/weights/best.pt"]
 MIN_FREE_GB = 10
@@ -58,10 +59,20 @@ def _lock(jobs, timeout=10.0):
         p.unlink(missing_ok=True)
 
 
-def stage_defs(video, outputs):
+def python_exe():
+    """분석 단계를 돌릴 파이썬. exe 안에서는 sys.executable 이 exe 자신이라 쓸 수 없으니 VB_PYTHON 또는 PATH 의 python"""
+    if not getattr(sys, "frozen", False):
+        return sys.executable
+    p = os.environ.get("VB_PYTHON") or shutil.which("python")
+    if not p:
+        raise JobError("분석에는 Python 환경(torch·ultralytics 등)이 필요합니다. VB_PYTHON 환경변수에 그 python.exe 경로를 지정하세요")
+    return p
+
+
+def stage_defs(video, outputs, py=None):
     """파이프라인 5단계. weight = 전체 진행률에서 차지하는 대략의 비중 (1·2·3세트 실행 시간을 보고 잡은 추정치),
     phases = 로그 진행 줄의 라벨 → 그 단계 안에서 차지하는 구간"""
-    py, v, o = sys.executable, str(video), str(outputs)
+    py, v, o = py or python_exe(), str(video), str(outputs)
     return [
         dict(name="court", label="코트 인식", weight=40, phases={"SAM3 코트": (0, 0.95)},
              argv=[py, "-u", "-c", f"from vbtrk.court_sam3 import video_courts; video_courts({v!r}, stride=10)"], env={}),
@@ -154,7 +165,7 @@ def list_states(jobs):
 def create(jobs, stem, video):
     Path(jobs).mkdir(parents=True, exist_ok=True)
     st = dict(stem=stem, video=str(video), status="uploaded", stage=None, error=None, pid=None, started=None, finished=None,
-              stages=[dict(name=d["name"], label=d["label"], weight=d["weight"], status="pending", frac=0.0) for d in stage_defs(video, "outputs")])
+              stages=[dict(name=d["name"], label=d["label"], weight=d["weight"], status="pending", frac=0.0) for d in stage_defs(video, "outputs", py="python")])  # 이름·비중만 필요 (파이썬 환경 없이도 업로드는 된다)
     write_state(jobs, st)
     return st
 
@@ -239,7 +250,7 @@ def run(stem, jobs, data, outputs, stages=None):
 def _spawn(st, jobs, data, outputs):
     """분리된 러너 프로세스를 띄우고 running 으로 기록 (검사는 하지 않는다: start 가 이미 했다)"""
     stem = st["stem"]
-    argv = [sys.executable, str(ROOT / "analysis_jobs.py"), "run", stem, "--jobs", str(jobs), "--data", str(data), "--outputs", str(outputs)]
+    argv = [python_exe(), str(ROOT / "analysis_jobs.py"), "run", stem, "--jobs", str(jobs), "--data", str(data), "--outputs", str(outputs)]
     kw = dict(cwd=ROOT, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True)
     if os.name == "nt":  # 숨은 콘솔 + 새 프로세스 그룹 (+ 서버가 속한 작업 객체에서 분리). 창이 안 뜨고, 서버를 닫아도 안 죽는다
         flags = 0x08000000 | 0x00000200
@@ -283,6 +294,8 @@ def _start_locked(stem, jobs, data, outputs, required, min_free_gb):
         raise JobError("없는 영상입니다")
     if st["status"] in ("running", "queued"):
         raise JobError("이미 분석 중이거나 대기 중입니다")
+    if not (ROOT / "run.py").exists():
+        raise JobError("분석은 프로젝트 폴더(run.py가 있는 곳)에서만 할 수 있습니다. exe 를 그 폴더에 두고 실행하세요")
     missing = [Path(p).name for p in required if not Path(p).exists()]
     if missing:
         raise JobError("필요한 모델 파일이 없습니다: " + ", ".join(missing))

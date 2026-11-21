@@ -7,6 +7,7 @@
 import argparse
 import os
 import shutil
+import sys
 import threading
 import webbrowser
 from pathlib import Path
@@ -20,7 +21,7 @@ from fastapi.staticfiles import StaticFiles
 import analysis_jobs as aj
 import viewer_data as vd
 
-UI = Path(__file__).resolve().parent / "ui"
+UI = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent)) / "ui"  # exe 로 묶이면 임시 풀린 폴더 안
 MAX_SPAN = 6000  # /frames 한 번에 받는 최대 프레임 수 (약 200초)
 
 
@@ -157,13 +158,16 @@ def create_app(outputs: Path, data: Path, jobs: Path = Path("jobs"), required=aj
 def main():
     import uvicorn
     p = argparse.ArgumentParser()
-    p.add_argument("--outputs", default="outputs")
-    p.add_argument("--data", default="data")
-    p.add_argument("--jobs", default="jobs")
+    base = aj.ROOT if aj.FROZEN else Path(".")  # exe 는 exe 가 있는 폴더 기준 (더블클릭하면 작업 폴더가 달라질 수 있어서)
+    p.add_argument("--outputs", default=str(base / "outputs"))
+    p.add_argument("--data", default=str(base / "data"))
+    p.add_argument("--jobs", default=str(base / "jobs"))
     p.add_argument("--port", type=int, default=8000)
+    p.add_argument("--no-browser", action="store_true", help="브라우저를 자동으로 열지 않는다")
     a = p.parse_args()
     app = create_app(Path(a.outputs), Path(a.data), Path(a.jobs))
-    threading.Timer(1.0, webbrowser.open, [f"http://localhost:{a.port}"]).start()
+    if not a.no_browser:
+        threading.Timer(1.0, webbrowser.open, [f"http://localhost:{a.port}"]).start()
     uvicorn.run(app, host="127.0.0.1", port=a.port)
 
 
