@@ -1,5 +1,8 @@
 # 컴퓨터비전 취업 포트폴리오 로드맵
 
+> **폴더 정리 (2026-11-24):** 아래 기록은 당시 파일 위치 그대로 적혀 있다. 이후 `action_*.py`·`ball_data/eval/track.py`·`eval.py` → `vbtrk/`(`python -m vbtrk.eval` 식으로 실행), `app.py`의 실제 코드·`viewer_data.py`·`analysis_jobs.py`·`ui/` → `viewer/`(`python app.py`는 그대로), `stitch_clip.py` → `tools/`, `test_*.py` → `tests/`, `docs/superpowers` → `docs/design`으로 옮겼고 쓰이지 않던 `sam3_court_test.py`는 지웠다.
+
+
 방식: 정해진 일정 없음. 심심할 때 단계 하나씩 (단계당 30분~1시간).
 환경: RTX 4060 Laptop 8GB, Windows + WSL2
 

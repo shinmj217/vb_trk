@@ -1,4 +1,4 @@
-"""뷰어 데이터·API 테스트: python -m pytest test_viewer.py -q (합성 데이터, 영상 없는 환경에서도 돈다)"""
+"""뷰어 데이터·API 테스트: python -m pytest tests/test_viewer.py -q (합성 데이터, 영상 없는 환경에서도 돈다)"""
 import csv
 from pathlib import Path
 
@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import pytest
 
-import viewer_data as vd
+from viewer import viewer_data as vd
 
 STEM = "match1_set1"
 
@@ -96,7 +96,7 @@ def test_summary(tmp_path):
 # ---- API ----
 from fastapi.testclient import TestClient  # noqa: E402
 
-import app as viewer_app  # noqa: E402
+from viewer import server as viewer_app  # noqa: E402
 
 
 def client(tmp_path):

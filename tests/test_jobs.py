@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-import analysis_jobs as aj
+from viewer import analysis_jobs as aj
 
 PY = sys.executable
 
@@ -131,7 +131,7 @@ import cv2  # noqa: E402
 import numpy as np  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
-import app as viewer_app  # noqa: E402
+from viewer import server as viewer_app  # noqa: E402
 
 
 def tiny_mp4(path: Path, n=30):

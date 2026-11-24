@@ -1,4 +1,4 @@
-"""데이터셋 레이블 폴더(각 41프레임)를 이어 붙여 연속 영상 만들기: python stitch_clip.py <video_id> <start> <end> <out.mp4>"""
+"""데이터셋 레이블 폴더(각 41프레임)를 이어 붙여 연속 영상 만들기: python tools/stitch_clip.py <video_id> <start> <end> <out.mp4>"""
 import os, sys
 import cv2
 

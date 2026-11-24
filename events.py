@@ -21,11 +21,11 @@ import numpy as np
 import torch
 from ultralytics import YOLO
 
-from action_data import crop_padded
-from action_frames import square
-from action_team import ACTOR5, GROUPS, scene_feat
-from action_temporal import NAMES5, OFFSETS, TemporalHead
-from eval import iou, load_annotations
+from vbtrk.action_data import crop_padded
+from vbtrk.action_frames import square
+from vbtrk.action_team import ACTOR5, GROUPS, scene_feat
+from vbtrk.action_temporal import NAMES5, OFFSETS, TemporalHead
+from vbtrk.eval import iou, load_annotations
 
 M = "outputs/action_cls"
 PAD = 1000

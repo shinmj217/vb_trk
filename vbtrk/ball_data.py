@@ -1,6 +1,6 @@
 """공 검출 YOLO 데이터셋 (Perez et al. 2022 공 중심 레이블 → 고정 크기 박스)
 
-    python ball_data.py     → data/ball/{images,labels}/{train,val,test}/  + data/ball/ball.yaml
+    python -m vbtrk.ball_data     → data/ball/{images,labels}/{train,val,test}/  + data/ball/ball.yaml
 
 - 이미지는 하드링크 (복사 없음, 같은 디스크). 이름 = 영상_프레임번호
 - 레이블: 공 중심에 BOX px 정사각 박스 (공 지름 약 18px @1280x720). 0 0(안 보임) = 빈 레이블(배경)
@@ -10,8 +10,8 @@
 import os
 from pathlib import Path
 
-from action_data import VAL_VIDEOS
-from eval import TEST_VIDEOS
+from vbtrk.action_data import VAL_VIDEOS
+from vbtrk.eval import TEST_VIDEOS
 
 ROOT = Path("data/volleyball")
 OUT = Path("data/ball")

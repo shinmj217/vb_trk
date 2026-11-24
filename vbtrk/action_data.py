@@ -1,7 +1,7 @@
 """동작 분류용 선수 크롭 데이터셋 만들기 (Volleyball Dataset 레이블 프레임, 정답 박스)
 
-    python action_data.py      → data/actions/{train,val,test}/{동작}/*.jpg (ultralytics 분류 폴더 형식)
-    python action_data.py 5    → data/actions_t5/...png : 시간축 입력. 채널 = 흑백 (t-5, t, t+5) 프레임
+    python -m vbtrk.action_data      → data/actions/{train,val,test}/{동작}/*.jpg (ultralytics 분류 폴더 형식)
+    python -m vbtrk.action_data 5    → data/actions_t5/...png : 시간축 입력. 채널 = 흑백 (t-5, t, t+5) 프레임
                                   → 움직임이 색 번짐으로 보임, 사전학습 3채널 모델 그대로 사용
 
 - 크롭: 박스 중심 기준 정사각형 (변 = 긴 변 x 1.1). 분류 모델이 가운데를 정사각형으로 자르므로 미리 맞춤
@@ -16,7 +16,7 @@ from pathlib import Path
 
 import cv2
 
-from eval import TEST_VIDEOS, load_annotations
+from vbtrk.eval import TEST_VIDEOS, load_annotations
 
 VAL_VIDEOS = [0, 2, 8, 12, 17, 19, 24, 26, 27, 28, 30, 33, 46, 49, 51]  # 논문 공식 split
 CAP, MIN = 3000, 1000

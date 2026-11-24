@@ -1,6 +1,6 @@
 """동작 분류 평가 (test = 원래 분포): 전체 정확도, 클래스별 재현율, 평균 클래스 정확도(MCA), 혼동 행렬
 
-    python action_eval.py --model outputs/action_cls/base/weights/best.pt
+    python -m vbtrk.action_eval --model outputs/action_cls/base/weights/best.pt
 """
 import argparse
 from pathlib import Path

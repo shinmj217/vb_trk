@@ -1,10 +1,10 @@
 """프레임 전체로 팀 행동 8종 분류 (선수 크롭에 안 잡히는 단서: 세리머니, 모임, 카메라 움직임)
 
-    python action_frames.py data      → data/team_frames/{train,val,test}/{팀 행동}/*.jpg
+    python -m vbtrk.action_frames data      → data/team_frames/{train,val,test}/{팀 행동}/*.jpg
         가운데 프레임을 정사각형으로 패딩(양옆 잘림 방지). train은 좌우 뒤집은 사본 + l/r 레이블 교환
     yolo classify train model=yolo26s-cls.pt data=data/team_frames imgsz=448 fliplr=0 ...
-    python action_frames.py feats s   → data/team_feats_s/{split}.npz : ±8프레임(9장) 특징 [장면, 9, 1280]
-    python action_frames.py head s    → 시간축 헤드 학습(train), val 평균 클래스로 epoch 선택, test 출력
+    python -m vbtrk.action_frames feats s   → data/team_feats_s/{split}.npz : ±8프레임(9장) 특징 [장면, 9, 1280]
+    python -m vbtrk.action_frames head s    → 시간축 헤드 학습(train), val 평균 클래스로 epoch 선택, test 출력
     (s/m = outputs/action_cls/frames_{s,m} 모델)
 """
 import sys
@@ -16,10 +16,10 @@ import torch
 import torch.nn as nn
 from ultralytics import YOLO
 
-from action_temporal import OFFSETS, TemporalHead, predict
-from action_eval import report
-from eval import TEST_VIDEOS, load_annotations
-from action_data import VAL_VIDEOS
+from vbtrk.action_temporal import OFFSETS, TemporalHead, predict
+from vbtrk.action_eval import report
+from vbtrk.eval import TEST_VIDEOS, load_annotations
+from vbtrk.action_data import VAL_VIDEOS
 
 GROUPS = [f"{s}-{a}" for s in "lr" for a in ("pass", "set", "spike", "winpoint")]
 SWAP = {g: ("r" if g[0] == "l" else "l") + g[1:] for g in GROUPS}

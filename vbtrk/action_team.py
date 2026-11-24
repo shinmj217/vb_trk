@@ -6,7 +6,7 @@
 3) 이벤트: 예측 팀 행동이 pass/set/spike면 그 팀에서 해당 동작(dig/set/spike) 확률이 가장 높은 1명 = 행위자
 4) 선수별 5종 재채점: dig/set/spike는 행위자 1명만 남기고 나머지는 other (block은 그대로)
 
-    python action_team.py
+    python -m vbtrk.action_team
 """
 import os
 from pathlib import Path
@@ -17,10 +17,10 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from action_data import collect
-from action_eval import report
-from action_temporal import NAMES5, TemporalHead, load, merge_map
-from eval import load_annotations
+from vbtrk.action_data import collect
+from vbtrk.action_eval import report
+from vbtrk.action_temporal import NAMES5, TemporalHead, load, merge_map
+from vbtrk.eval import load_annotations
 
 GROUPS = [f"{s}-{a}" for s in "lr" for a in ("pass", "set", "spike", "winpoint")]
 ACTOR5 = {"pass": "dig", "set": "set", "spike": "spike"}
@@ -70,7 +70,7 @@ def head_probs(x, head):
 
 def player_probs(size):
     """선수 시간축 헤드 5종·9종 확률 (size: s = temporal_head*.pt, m = temporal_head*_m.pt)"""
-    import action_temporal
+    from vbtrk import action_temporal
     action_temporal.FEATS = "data/action_feats" + ("" if size == "s" else f"_{size}")
     sfx = "" if size == "s" else f"_{size}"
     out = {}
@@ -83,7 +83,7 @@ def player_probs(size):
 
 
 def frame_probs(size):
-    import action_frames
+    from vbtrk import action_frames
     h = TemporalHead(len(GROUPS)).cuda().eval()
     h.load_state_dict(torch.load(f"outputs/action_cls/frames_head_{size}.pt"))
     return {sp: head_probs(action_frames.load(sp, size)[0], h) for sp in ("val", "test")}

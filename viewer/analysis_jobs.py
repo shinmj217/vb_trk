@@ -1,6 +1,6 @@
 """업로드한 영상의 분석 작업: 파이프라인 5단계를 서버와 분리된 프로세스로 돌리고, 진행 상황을 jobs/<이름>.json 에 남긴다.
 
-    (서버가 알아서 호출) python analysis_jobs.py run <이름> --jobs jobs --data data --outputs outputs
+    (서버가 알아서 호출) python -m viewer.analysis_jobs run <이름> --jobs jobs --data data --outputs outputs
 상태: uploaded → (queued →) running → done | failed | cancelled.  실패·취소 뒤에 다시 시작하면 끝난 단계는 건너뛴다.
 분석 중에 다른 영상을 시작하면 queued(대기)가 되고, 앞 작업이 끝나면 자동으로 이어서 시작한다.
 서버를 닫거나 브라우저를 닫아도 러너 프로세스는 계속 돈다 (상태 파일이 진실의 원천).
@@ -18,7 +18,7 @@ from collections import deque
 from pathlib import Path
 
 FROZEN = getattr(sys, "frozen", False)  # PyInstaller exe 안에서 도는지
-ROOT = Path(sys.executable).parent if FROZEN else Path(__file__).resolve().parent  # exe 는 프로젝트 폴더(run.py 가 있는 곳)에 두고 쓴다
+ROOT = Path(sys.executable).parent if FROZEN else Path(__file__).resolve().parent.parent  # exe 는 프로젝트 폴더(run.py 가 있는 곳)에 두고 쓴다
 REQUIRED = [ROOT / "yolo26m.pt", ROOT / "outputs/ball/y26s_1280/weights/best.pt",
             ROOT / "outputs/action_cls/base/weights/best.pt", ROOT / "outputs/action_cls/frames_m/weights/best.pt"]
 MIN_FREE_GB = 10
@@ -250,7 +250,7 @@ def run(stem, jobs, data, outputs, stages=None):
 def _spawn(st, jobs, data, outputs):
     """분리된 러너 프로세스를 띄우고 running 으로 기록 (검사는 하지 않는다: start 가 이미 했다)"""
     stem = st["stem"]
-    argv = [python_exe(), str(ROOT / "analysis_jobs.py"), "run", stem, "--jobs", str(jobs), "--data", str(data), "--outputs", str(outputs)]
+    argv = [python_exe(), "-m", "viewer.analysis_jobs", "run", stem, "--jobs", str(jobs), "--data", str(data), "--outputs", str(outputs)]
     kw = dict(cwd=ROOT, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True)
     if os.name == "nt":  # 숨은 콘솔 + 새 프로세스 그룹 (+ 서버가 속한 작업 객체에서 분리). 창이 안 뜨고, 서버를 닫아도 안 죽는다
         flags = 0x08000000 | 0x00000200

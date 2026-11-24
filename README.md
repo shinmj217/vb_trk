@@ -116,16 +116,22 @@ MLflow·DVC·Evidently는 파이프라인 환경을 건드리지 않게 별도 �
 
 ## 구조
 
-| 파일 | 역할 |
-|---|---|
-| `run.py`, `events.py`, `ball_video.py`, `analysis.py` | 파이프라인 4단계 |
-| `vbtrk/` | 코트(SAM3 → 호모그래피), 팀·선수 판정, 시각화 |
-| `action_*.py`, `ball_*.py`, `eval.py` | 동작·공 데이터, 학습, 평가 |
-| `app.py`, `viewer_data.py`, `analysis_jobs.py`, `ui/` | 결과 뷰어 (서버, 데이터, 분석 작업 관리, 화면) |
-| `serve.py`, `mlops/`, `monitoring/` | 서빙, MLflow·드리프트, Prometheus·Grafana |
-| `score_match.py` | 실제 경기 채점 (평가 전용 정답과 비교) |
-| `test_*.py` | 테스트 |
-| `docs/` | 상세 결과, 재현 방법, 설계·구현 계획 |
+```
+vb_trk/
+├─ run.py  events.py  ball_video.py  analysis.py   파이프라인 4단계 (진입점)
+├─ app.py                                           결과 뷰어 실행 (실제 코드는 viewer/)
+├─ serve.py   score_match.py                        검출 모델 서빙, 실제 경기 채점
+├─ vbtrk/     코트(SAM3 → 호모그래피)·팀·시각화 + 동작·공 데이터·학습·평가 (action_*, ball_*, eval)
+├─ viewer/    결과 뷰어: server.py, viewer_data.py, analysis_jobs.py, ui/
+├─ mlops/     MLflow 기록, 드리프트 감지
+├─ monitoring/  Prometheus·Grafana 설정   (Dockerfile, docker-compose.yml 은 루트)
+├─ tests/     테스트 66개 (conftest.py 가 저장소 루트를 import 경로에 넣는다)
+├─ tools/     보조 도구 (긴 테스트 영상 만들기)
+├─ data/ models/ *.dvc   영상·가중치는 DVC 포인터만
+└─ docs/      상세 결과, 재현 방법, design/ (뷰어 설계서·구현 계획)
+```
+
+학습·평가 도구는 패키지 안에 있어서 `python -m vbtrk.eval`, `python -m vbtrk.action_data`처럼 실행합니다 ([재현 방법](docs/REPRODUCE.md)).
 
 ## 한계
 

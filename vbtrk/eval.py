@@ -4,7 +4,7 @@
 - 팀 판정: l-/r- 팀 행동 프레임에서 그 행동을 하는 선수(pass=digging, set=setting, spike=spiking)가
           맞는 팀(왼쪽=FAR, 오른쪽=NEAR)으로 나오는지
 
-    python eval.py --per-video 5          # 테스트 16영상 × 5시퀀스
+    python -m vbtrk.eval --per-video 5          # 테스트 16영상 × 5시퀀스
 """
 import argparse
 import csv

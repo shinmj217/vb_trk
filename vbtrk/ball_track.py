@@ -1,6 +1,6 @@
 """공 궤적 후처리: 앞뒤 프레임 후보와 이어지는 검출만 남기고, 짧은 구멍은 직선 보간
 
-    python ball_track.py   → val(연속 프레임)에서 (거리 d, 구멍 gap, 임계값) 고르고 test 4px/10px F1
+    python -m vbtrk.ball_track   → val(연속 프레임)에서 (거리 d, 구멍 gap, 임계값) 고르고 test 4px/10px F1
                              (ball_eval.py가 만든 후보 캐시 outputs/ball_preds_*.json 사용)
 
 - 점수 = (자기 확신도 + 앞뒤 ±2프레임 안 d·|dt| px 이내 후보 중 최고 확신도) / 2
@@ -9,7 +9,7 @@
 """
 import numpy as np
 
-from ball_eval import CACHE, predict, score
+from vbtrk.ball_eval import CACHE, predict, score
 
 DT = (-2, -1, 1, 2)
 

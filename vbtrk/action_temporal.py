@@ -5,7 +5,7 @@
 2) 학습: 프레임별 특징 → 작은 1D conv 시간축 헤드 → 9종. val 평균 클래스 정확도로 최고 epoch 선택
 3) 평가: test (원래 분포). 비교용으로 가운데 프레임 + 기준선 원래 분류층 결과도 같이 출력 (= 기준선 재현)
 
-    python action_temporal.py
+    python -m vbtrk.action_temporal
 """
 import argparse
 from pathlib import Path
@@ -16,8 +16,8 @@ import torch
 import torch.nn as nn
 from ultralytics import YOLO
 
-from action_data import collect, square_crop
-from action_eval import report
+from vbtrk.action_data import collect, square_crop
+from vbtrk.action_eval import report
 
 K, STEP = 8, 2  # ±8프레임, 2프레임 간격 → 9프레임
 OFFSETS = list(range(-K, K + 1, STEP))

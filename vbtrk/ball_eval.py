@@ -1,6 +1,6 @@
 """공 검출 평가 (WASB 논문과 같은 방식): 프레임당 확신도 최고 1개만, 정답 중심과 tol px 이내면 맞음
 
-    python ball_eval.py --model outputs/ball/y26s_1280/weights/best.pt
+    python -m vbtrk.ball_eval --model outputs/ball/y26s_1280/weights/best.pt
 
 - TP: 예측 있음 + 공 보임 + 거리 ≤ tol / FP: 예측 있음 + (공 안 보임 또는 거리 > tol) / FN: 예측 없음 + 공 보임 / TN: 둘 다 없음
 - 확신도 임계값은 val에서 F1(4px) 최대인 값 → test에 그대로 적용

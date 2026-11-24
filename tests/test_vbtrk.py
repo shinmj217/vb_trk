@@ -1,4 +1,4 @@
-"""영상 없이 돌리는 자가 점검: python test_vbtrk.py"""
+"""영상 없이 돌리는 자가 점검: python -m pytest tests/test_vbtrk.py -q"""
 import numpy as np
 
 from vbtrk.court import Court, FAR, NEAR, COURT_CORNERS
@@ -176,7 +176,7 @@ def test_drop_outliers():
 
 def test_eval_parse_and_match():
     import tempfile, os
-    from eval import load_annotations, match
+    from vbtrk.eval import load_annotations, match
     with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
         f.write("48075.jpg r_winpoint 372 442 86 130 falling 712 426 73 124 standing\n")
     try:
@@ -190,19 +190,19 @@ def test_eval_parse_and_match():
 
 
 def test_action_report():
-    from action_eval import report
+    from vbtrk.action_eval import report
     cm, rec = report(["a", "b"], np.array([0, 0, 0, 1]), np.array([0, 0, 1, 1]))
     assert cm.tolist() == [[2, 1], [0, 1]] and np.allclose(rec, [2 / 3, 1])
 
 
 def test_temporal_head_shapes():
     import torch
-    from action_temporal import TemporalHead
+    from vbtrk.action_temporal import TemporalHead
     assert TemporalHead(9)(torch.zeros(4, 9, 1280)).shape == (4, 9)
 
 
 def test_scene_feat():
-    from action_team import scene_feat
+    from vbtrk.action_team import scene_feat
     p = np.array([[0.1, 0.9], [0.5, 0.5], [0.8, 0.2]])
     f = scene_feat(p, np.array([True, True, False]))   # 왼쪽 팀 max, mean / 오른쪽 팀 max, mean
     assert np.allclose(f, [0.5, 0.9, 0.3, 0.7, 0.8, 0.2, 0.8, 0.2])
@@ -210,7 +210,7 @@ def test_scene_feat():
 
 def test_event_segment_and_actor():
     from events import segment, actor
-    from action_team import GROUPS
+    from vbtrk.action_team import GROUPS
     g = np.zeros((30, 8))
     g[:12, GROUPS.index("l-pass")] = 1
     g[12:14, GROUPS.index("r-set")] = 1                 # 2프레임짜리 튐 → 다듬기로 사라짐
@@ -255,7 +255,7 @@ def test_left_team():
 
 
 def test_ball_score():
-    from ball_eval import score
+    from vbtrk.ball_eval import score
     res = [((100, 100), (102, 101, 0.9)),   # TP (2.2px)
            ((100, 100), (120, 100, 0.9)),   # FP (20px)
            ((100, 100), None),              # FN
@@ -269,7 +269,7 @@ def test_ball_score():
 
 def test_ball_track():
     """혼자 튀는 오검출은 이웃 지지가 없어 버려지고, 공 궤적의 1프레임 구멍은 보간. 구간은 영상·연속 프레임 기준"""
-    from ball_track import choose, fill, segments
+    from vbtrk.ball_track import choose, fill, segments
     cands = [[(100, 100, 0.8)], [(110, 100, 0.8), (600, 300, 0.9)], [], [(130, 100, 0.8)], [(140, 100, 0.8)]]
     pts = fill(choose(cands, 30), 0.5, 30, 2)
     assert [round(p[0]) for p in pts] == [100, 110, 120, 130, 140], pts   # 600은 버림, t=2는 보간
@@ -288,7 +288,7 @@ def test_courses():
 
 def test_square_crop_edge():
     import cv2, tempfile, os
-    from action_data import square_crop
+    from vbtrk.action_data import square_crop
     f = os.path.join(tempfile.mkdtemp(), "f.jpg")
     cv2.imwrite(f, np.full((720, 1280, 3), 200, np.uint8))
     c = square_crop(f, (0, 600, 40, 720))          # 화면 왼쪽 아래 구석 선수

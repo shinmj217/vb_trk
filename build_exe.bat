@@ -7,7 +7,7 @@ if not exist .venv-pack python -m venv .venv-pack
 if errorlevel 1 exit /b 1
 .venv-pack\Scripts\python -m pip install -q pyinstaller fastapi uvicorn pandas numpy opencv-python-headless
 if errorlevel 1 exit /b 1
-.venv-pack\Scripts\pyinstaller --noconfirm --onefile --name vb_viewer --add-data "ui;ui" --collect-submodules uvicorn app.py
+.venv-pack\Scripts\pyinstaller --noconfirm --onefile --name vb_viewer --add-data "viewer/ui;viewer/ui" --collect-submodules uvicorn app.py
 if errorlevel 1 exit /b 1
 copy /Y dist\vb_viewer.exe vb_viewer.exe
 echo.

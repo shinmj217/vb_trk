@@ -10,7 +10,7 @@ from pathlib import Path
 import cv2
 from ultralytics import YOLO
 
-from ball_track import choose, fill
+from vbtrk.ball_track import choose, fill
 
 D, GAP, THR = 60, 4, 0.22   # ball_track.py val 튜닝 결과 (2026-11-15)
 TAIL = 12
