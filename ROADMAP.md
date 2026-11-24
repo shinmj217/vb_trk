@@ -2,6 +2,8 @@
 
 > **폴더 정리 (2026-11-24):** 아래 기록은 당시 파일 위치 그대로 적혀 있다. 이후 `action_*.py`·`ball_data/eval/track.py`·`eval.py` → `vbtrk/`(`python -m vbtrk.eval` 식으로 실행), `app.py`의 실제 코드·`viewer_data.py`·`analysis_jobs.py`·`ui/` → `viewer/`(`python app.py`는 그대로), `stitch_clip.py` → `tools/`, `test_*.py` → `tests/`, `docs/superpowers` → `docs/design`으로 옮겼고 쓰이지 않던 `sam3_court_test.py`는 지웠다.
 
+> **저장공간 정리 (2026-11-24):** C: 여유 73GB → 156GB. 지운 것: 데이터셋 압축본 `volleyball_.zip` 57.8GB(풀어 둔 `videos`와 파일 198,098개의 이름·크기가 모두 같은 중복), pip 캐시 21GB, Visual Studio 설치 임시 파일 4.3GB, npm 캐시 2GB. `data/ball`(공 학습 데이터)은 이미지가 **하드링크**라 지워도 공간이 안 돌아와서 `python -m vbtrk.ball_data`로 다시 만들었다(4분 28초, test 43,628장). Docker 디스크(34GB)는 Docker Desktop을 켜서 정리·압축해야 줄어든다(아직 안 함).
+
 
 방식: 정해진 일정 없음. 심심할 때 단계 하나씩 (단계당 30분~1시간).
 환경: RTX 4060 Laptop 8GB, Windows + WSL2
